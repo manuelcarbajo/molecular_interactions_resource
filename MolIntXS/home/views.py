@@ -637,7 +637,7 @@ def display_by_gene(request,ens_stbl_id):
     
     for intrctn in interactions_by_queried_gene:
         
-        source_db = intrctn.source_db.label
+        source_db = get_displayable_source_db(intrctn.source_db.label)
         source_db_link = get_source_db_link(intrctn.interactor_1.curies, source_db)
 
         #First, sort the order of the two interactors to display always the queried gene as interactor_1
@@ -645,6 +645,7 @@ def display_by_gene(request,ens_stbl_id):
             interactor1_type = intrctn.interactor_1.interactor_type
             species1_name = intrctn.interactor_1.ensembl_gene.species.scientific_name 
             identifier1 = intrctn.interactor_1.curies
+            division1 = intrctn.interactor_1.ensembl_gene.species.ensembl_division
             ens_stbl_id_1 = intrctn.interactor_1.ensembl_gene.ensembl_stable_id
         
             interactor2_type = intrctn.interactor_2.interactor_type
@@ -652,24 +653,27 @@ def display_by_gene(request,ens_stbl_id):
             interactor2_name = intrctn.interactor_2.name
             if interactor2_type != 'synthetic':
                 species2_name = intrctn.interactor_2.ensembl_gene.species.scientific_name 
+                division2 = intrctn.interactor_2.ensembl_gene.species.ensembl_division
                 ens_stbl_id_2 = intrctn.interactor_2.ensembl_gene.ensembl_stable_id 
         elif intrctn.interactor_2.ensembl_gene.ensembl_stable_id==ens_stbl_id:
             interactor1_type = intrctn.interactor_2.interactor_type
             species1_name = intrctn.interactor_2.ensembl_gene.species.scientific_name 
             identifier1 = intrctn.interactor_2.curies
+            division1 = intrctn.interactor_2.ensembl_gene.species.ensembl_division 
             ens_stbl_id_1 = intrctn.interactor_2.ensembl_gene.ensembl_stable_id
  
             interactor2_type = intrctn.interactor_1.interactor_type
             identifier2 = intrctn.interactor_1.curies
             interactor2_name = intrctn.interactor_1.name
             if interactor2_type != 'synthetic':
-                species2_name = intrctn.interactor_1.ensembl_gene.species.scientific_name 
+                species2_name = intrctn.interactor_1.ensembl_gene.species.scientific_name
+                division2 = intrctn.interactor_1.ensembl_gene.species.ensembl_division
                 ens_stbl_id_2 = intrctn.interactor_1.ensembl_gene.ensembl_stable_id 
 
         #build interactor_1 dictionary
         if not interactions_results_dict["interactor_1"]:
             InteractionsByGeneList = []
-            ensembl_gene_link_1 = get_gene_link(ens_stbl_id_1)
+            ensembl_gene_link_1 = get_gene_link(ens_stbl_id_1,division1)
             identifier1_url = get_identifier_link(identifier1)
 
             interactor1_dict = {"type":"species","name": species1_name,"gene": {"name":ens_stbl_id_1,"url":ensembl_gene_link_1},"interactor":interactor1_type,"identifier": {"name":identifier1,"url":identifier1_url}}
@@ -687,7 +691,7 @@ def display_by_gene(request,ens_stbl_id):
         else:
             if 'UNDETERMINED' in ens_stbl_id_2:
                 ens_stbl_id_2 = 'UNDETERMINED'
-            ensembl_gene_link_2 = get_gene_link(ens_stbl_id_2)
+            ensembl_gene_link_2 = get_gene_link(ens_stbl_id_2,division2)
             interactor2_dict = {"type":"species", "name": species2_name,"gene": {"name":ens_stbl_id_2,"url":ensembl_gene_link_2},"interactor":interactor2_type,"identifier":{"name":identifier2,"url":identifier2_url},"source_DB":{"name":source_db,"url":source_db_link}}
         
         #build associated metadata
@@ -782,16 +786,22 @@ def get_metadata_list(interaction_id, source_db_link):
             metadata_list.append(metadata_dict)
     return metadata_list
 
+def get_displayable_source_db(source_db):
+    if source_db == "PHI-baseAMR":
+        return "PHI-base5.0"
+    return source_db
+
+
 def get_source_db_link(identifier, source_db):
     url = ''
     if source_db == "PHI-base":
         url = "http://www.phi-base.org/searchFacet.htm?queryTerm=" + clean_identifier(identifier)
-    elif source_db == "PHI-base5.0":
+    elif "HPIDB" in source_db:
+        url = "https://hpidb.igbb.msstate.edu/keyword.html"
+    elif (source_db == "PHI-base5.0") or (source_db == "PHI-baseAMR"):
         url = "https://phi5.phi-base.org/#/search-list-page?keyword=" + clean_identifier(identifier) + "&start=0"
     elif source_db == "PlasticDB":
         url = "https://plasticdb.org/proteins"
-    elif "HPIDB" in source_db:
-        url = "https://hpidb.igbb.msstate.edu/keyword.html"
     return url
 
 def clean_identifier(raw_id):
@@ -807,10 +817,13 @@ def get_identifier_link(identifier):
         url_link = "https://identifiers.org/" + identifier
     return url_link
 
-def get_gene_link(ensembl_gene):
+def get_gene_link(ensembl_gene, division):
     url_link = None
     if 'UNDETERMINED' not in ensembl_gene:
-        url_link = "https://ensemblgenomes.org/id/" + ensembl_gene
+        if division == 'vertebrates':
+            url_link = "https://www.ensembl.org/id/" + ensembl_gene 
+        else:
+            url_link = "https://ensemblgenomes.org/id/" + ensembl_gene
     return url_link
 
 @api_view(['GET'])
