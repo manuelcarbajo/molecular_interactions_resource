@@ -22,17 +22,17 @@ class PredictionMethod(models.Model):
 class Species(models.Model):
     species_id = models.AutoField(primary_key=True)
     ensembl_division = models.CharField(max_length=255)
-    production_name = models.CharField(max_length=255)
+    production_name = models.CharField(max_length=255, blank=True, null=True )
     scientific_name = models.CharField(max_length=255)
     taxon_id = models.IntegerField(unique=True)
 
     def __str__(self):
-        return 'id: {}, division: {}, production_name: {}, scientific_name: {}, taxon_id: {}'.format(self.species_id,self.ensembl_division,self.production_name,self.scientific_name,self.taxon_id)
-        #return ('species:', str(self.species_id), '; division:', self.ensembl_division, '; prod_name:',self.production_name, '; taxon_id:', str(self.taxon_id))
+        return 'id: {}, division: {}, production_name: {}, scientific_name: {}, taxon_id: {}'.format(self.species_id,self.ensembl_division,str(self.production_name),self.scientific_name,self.taxon_id)
 
     class Meta:
         managed = True
         db_table = 'species'
+        unique_together = (('scientific_name','production_name', 'taxon_id'),)
 
 
 class EnsemblGene(models.Model):
