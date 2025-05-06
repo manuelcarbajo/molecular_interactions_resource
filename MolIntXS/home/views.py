@@ -823,7 +823,7 @@ def get_gene_link(ensembl_gene, division):
         if division == 'vertebrates':
             url_link = "https://www.ensembl.org/id/" + ensembl_gene 
         else:
-            url_link = "https://ensemblgenomes.org/id/" + ensembl_gene
+            url_link = "https://" + division +  ".ensembl.org/id/" + ensembl_gene
     return url_link
 
 @api_view(['GET'])
